@@ -34,7 +34,6 @@ public class TermoServer {
             String secretWord = WORDS[new Random().nextInt(WORDS.length)];
             String normalizedSecret = normalize(secretWord);
             int maxAttempts = 6;
-            System.out.println("Palavra secreta: " + secretWord);
 
             out.write("Bem-vindo ao Termo! Tente adivinhar a palavra de 5 letras.\n");
             out.flush();
