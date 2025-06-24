@@ -1,10 +1,15 @@
 import java.io.*;
 import java.net.*;
+import java.text.Normalizer;
 import java.util.*;
 
 public class TermoServer {
     private static final int PORT = 12345;
-    private static final String[] WORDS = {"carta", "trigo", "folha", "navio", "pleno"};
+    private static final String[] WORDS = {"carta", "trigo", "folha", "navio", "pleno", "limpo", "vidro", "carro", "banho", "verde",
+            "fruta", "leite", "massa", "salto", "tempo", "linha", "terra", "piano", "neve", "noite",
+            "lente", "lindo", "tarde", "ponto", "banco", "cinto", "gente", "vento", "chuva", "festa",
+            "livro", "beijo", "fundo", "preto", "claro", "nuvem", "peixe", "cobra", "fácil", "rádio",
+            "roupa", "sonho", "sinal", "pista", "caixa", "pente", "doido", "porta", "moeda", "forno"};
 
     public static void main(String[] args) {
         System.out.println("Servidor Termo iniciado...");
@@ -27,6 +32,7 @@ public class TermoServer {
                 BufferedWriter out = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()))
         ) {
             String secretWord = WORDS[new Random().nextInt(WORDS.length)];
+            String normalizedSecret = normalize(secretWord);
             int maxAttempts = 6;
             System.out.println("Palavra secreta: " + secretWord);
 
@@ -37,24 +43,26 @@ public class TermoServer {
                 out.write("Tentativa " + attempt + ": \n");
                 out.flush();
 
-
                 String guess = in.readLine();
                 if (guess == null) break;
+
+                guess = guess.trim().toLowerCase();
+                String normalizedGuess = normalize(guess);
 
                 if (guess.length() != 5) {
                     out.write("A palavra deve ter 5 letras.\n");
                     out.flush();
-                    attempt--; // não conta tentativa inválida
+                    attempt--; // tentativa inválida não conta
                     continue;
                 }
 
-                if (guess.equals(secretWord)) {
+                if (normalizedGuess.equals(normalizedSecret)) {
                     out.write("Parabéns! Você acertou a palavra: " + secretWord + "\n");
                     out.flush();
                     break;
                 }
 
-                out.write(verificaPalavra(guess, secretWord) + "\n");
+                out.write(verificaPalavra(normalizedGuess, normalizedSecret, guess) + "\n");
                 out.flush();
             }
 
@@ -67,44 +75,41 @@ public class TermoServer {
         }
     }
 
-    private static String verificaPalavra(String guess, String secret) {
+    private static String verificaPalavra(String guess, String secret, String originalGuess) {
         char[] result = new char[5];
         boolean[] used = new boolean[5];
 
-        // Inicializa com '_'
         Arrays.fill(result, '_');
 
-        // Primeiro passa: letras na posição correta
+        // Letras corretas e na posição certa
         for (int i = 0; i < 5; i++) {
             if (guess.charAt(i) == secret.charAt(i)) {
-                result[i] = Character.toUpperCase(guess.charAt(i)); // Maiúscula para correto e na posição certa
+                result[i] = Character.toUpperCase(originalGuess.charAt(i));
                 used[i] = true;
             }
         }
 
-        // Segundo passa: letras certas na posição errada
+        // Letras corretas na posição errada
         for (int i = 0; i < 5; i++) {
-            if (result[i] != '_') continue; // Já acertou nessa posição
+            if (result[i] != '_') continue;
 
             char c = guess.charAt(i);
-            boolean found = false;
             for (int j = 0; j < 5; j++) {
                 if (!used[j] && secret.charAt(j) == c) {
+                    result[i] = Character.toLowerCase(originalGuess.charAt(i));
                     used[j] = true;
-                    found = true;
                     break;
                 }
             }
-
-            if (found) {
-                result[i] = Character.toLowerCase(c); // Minúscula para letra correta na posição errada
-            }
-            // Se não encontrou, permanece '_'
         }
 
-        // Retorna a string com os símbolos
-        // Exemplo: A__e_ (A maiúsculo = certo na posição, letras minúsculas = na palavra mas em outra posição, _ = não está)
         return new String(result);
     }
 
+    // Função para remover acentos de palavras
+    private static String normalize(String word) {
+        return Normalizer.normalize(word, Normalizer.Form.NFD)
+                .replaceAll("[^\\p{ASCII}]", "")
+                .toLowerCase();
+    }
 }
